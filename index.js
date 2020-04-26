@@ -36,7 +36,7 @@ app.get('/products', (req, res) => {
                 res.status(500).send({ message: err });
             }
             else {
-                
+
                 res.send(documents);
             }
 
@@ -49,13 +49,88 @@ app.get('/products', (req, res) => {
 });
 
 
-app.get('/users/:id', (req, res) => {
-    const id = req.params.id;
-    console.log(req.query.sort);
-    const name = users[id];
-    res.send({ id, name });
+app.get('/product/:key', (req, res) => {
+    const key = req.params.key;
+
+    client = new MongoClient(uri, { useNewUrlParser: true });
+
+    client.connect(err => {
+        const collection = client.db("onlineStore").collection("products");
+        // perform actions on the collection object
+
+        collection.find({ key }).limit(10).toArray((err, documents) => {
+
+            if (err) {
+                console.log(err);
+                res.status(500).send({ message: err });
+            }
+            else {
+
+                res.send(documents[0]);
+            }
+
+        });
+
+
+
+        client.close();
+    });
 
 })
+
+app.post('/getProductsBtKey', (req, res) => {
+    const key = req.params.key;
+    const productKeys = req.body;
+    client = new MongoClient(uri, { useNewUrlParser: true });
+    client.connect(err => {
+        const collection = client.db("onlineStore").collection("products");
+        // perform actions on the collection object
+
+        collection.find({ key: { $in: productKeys } }).limit(10).toArray((err, documents) => {
+
+            if (err) {
+                console.log(err);
+                res.status(500).send({ message: err });
+            }
+            else {
+
+                res.send(documents);
+            }
+
+        });
+
+
+
+        client.close();
+    });
+
+})
+app.post('/placeOrder', (req, res) => {
+    //save to database
+    const orderDetails = req.body;
+    orderDetails.orderTime = new Date();
+
+    client = new MongoClient(uri, { useNewUrlParser: true });
+    client.connect(err => {
+        const collection = client.db("onlineStore").collection("orders");
+        // perform actions on the collection object
+
+        collection.insertOne(orderDetails, (err, result) => {
+
+            if (err) {
+                console.log(err);
+                res.status(500).send({ message: err });
+            }
+            else {
+                console.log('successfully inserted', result);
+                res.send(result.ops[0]);
+            }
+        });
+        client.close();
+    });
+})
+
+
 
 
 
@@ -68,7 +143,7 @@ app.post('/addProduct', (req, res) => {
         const collection = client.db("onlineStore").collection("products");
         // perform actions on the collection object
 
-        collection.insertOne(product, (err, result) => {
+        collection.insert(product, (err, result) => {
 
             if (err) {
                 console.log(err);
@@ -96,6 +171,6 @@ app.post('/addProduct', (req, res) => {
 
 
 
-const port=process.env.PORT || 3000;
+const port = process.env.PORT || 4200;
 
-app.listen(port, () => console.log('Listening to port 3000'))
+app.listen(port, () => console.log('Listening to port', port))
